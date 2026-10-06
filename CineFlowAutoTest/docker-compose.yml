@@ -5,7 +5,7 @@ services:
       MYSQL_DATABASE: cineflow_test
       MYSQL_ROOT_PASSWORD: root
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--protocol=tcp", "-proot"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -22,6 +22,12 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
     ports:
       - "8000:8000"
 
@@ -32,8 +38,10 @@ services:
     environment:
       BASE_URL: http://api:8000
       DATABASE_URL: mysql+pymysql://root:root@mysql:3306/cineflow_test?charset=utf8mb4
+      WAIT_TIMEOUT: "120"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     command: ["sh", "-c", "python scripts/wait_for_api.py && pytest --junitxml=reports/junit.xml"]
     volumes:
       - ./reports:/workspace/CineFlowAutoTest/reports
