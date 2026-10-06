@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select, update
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -23,8 +24,19 @@ class TicketService:
 
     def release_expired(self) -> int:
         now = datetime.now()
-        expired = list(self.db.scalars(select(Seat).where(
-            Seat.status == "LOCKED", Seat.lock_expires_at < now).with_for_update()).all())
+        # A range SELECT ... FOR UPDATE on the lock-status index can acquire an
+        # InnoDB gap lock even when no rows match. Two concurrent buyers would
+        # then deadlock while both tried to lock the same schedule. Discover the
+        # candidates without a lock, then lock exact primary keys in a stable
+        # order and re-check them after the lock is acquired.
+        expired_ids = list(self.db.scalars(select(Seat.id).where(
+            Seat.status == "LOCKED", Seat.lock_expires_at < now).order_by(Seat.id)).all())
+        if not expired_ids:
+            return 0
+        candidates = list(self.db.scalars(select(Seat).where(
+            Seat.id.in_(expired_ids)).order_by(Seat.id).with_for_update()).all())
+        expired = [item for item in candidates if item.status == "LOCKED" and
+                   item.lock_expires_at is not None and item.lock_expires_at < now]
         order_ids = {item.order_id for item in expired if item.order_id}
         for item in expired:
             item.status, item.lock_user_id, item.lock_expires_at, item.order_id = "AVAILABLE", None, None, None
@@ -45,24 +57,31 @@ class TicketService:
         return {"scheduleId": schedule_id, "seats": [seat(item) for item in seats], "expiresAt": expires_at.isoformat()}
 
     def create_order(self, request: CreateOrderRequest, user_id: int) -> dict:
-        existing = self.orders.by_idempotency(user_id, request.idempotency_key)
-        if existing:
-            return order(existing)
-        self.release_expired()
-        schedule = self._sellable_schedule(request.schedule_id)
-        seats = self.movies.seats(schedule.id, sorted(request.seat_ids), for_update=True)
-        self._validate_seats(seats, request.seat_ids, user_id)
-        ticket_order = TicketOrder(order_no=f"T{int(time.time() * 1000)}{secrets.token_hex(3).upper()}", user_id=user_id,
-                                   schedule_id=schedule.id, total_amount=schedule.price * len(seats),
-                                   idempotency_key=request.idempotency_key)
-        self.db.add(ticket_order)
-        self.db.flush()
-        expires_at = datetime.now() + timedelta(minutes=settings.order_expire_minutes)
-        for item in seats:
-            item.status, item.lock_user_id, item.lock_expires_at, item.order_id = "LOCKED", user_id, expires_at, ticket_order.id
-            self.db.add(OrderSeat(order_id=ticket_order.id, seat_id=item.id, price=schedule.price))
-        self.db.commit()
-        return order(self._get(ticket_order.id, user_id))
+        try:
+            existing = self.orders.by_idempotency(user_id, request.idempotency_key)
+            if existing:
+                return order(existing)
+            self.release_expired()
+            schedule = self._sellable_schedule(request.schedule_id)
+            seats = self.movies.seats(schedule.id, sorted(request.seat_ids), for_update=True)
+            self._validate_seats(seats, request.seat_ids, user_id)
+            ticket_order = TicketOrder(order_no=f"T{int(time.time() * 1000)}{secrets.token_hex(3).upper()}", user_id=user_id,
+                                       schedule_id=schedule.id, total_amount=schedule.price * len(seats),
+                                       idempotency_key=request.idempotency_key)
+            self.db.add(ticket_order)
+            self.db.flush()
+            expires_at = datetime.now() + timedelta(minutes=settings.order_expire_minutes)
+            for item in seats:
+                item.status, item.lock_user_id, item.lock_expires_at, item.order_id = "LOCKED", user_id, expires_at, ticket_order.id
+                self.db.add(OrderSeat(order_id=ticket_order.id, seat_id=item.id, price=schedule.price))
+            self.db.commit()
+            return order(self._get(ticket_order.id, user_id))
+        except OperationalError as exc:
+            self.db.rollback()
+            error_code = exc.orig.args[0] if exc.orig and exc.orig.args else None
+            if error_code in {1205, 1213}:
+                raise ApiError(409, "座位正在被其他用户操作，请重试") from exc
+            raise
 
     def list_orders(self, user_id: int) -> list[dict]:
         return [order(item) for item in self.orders.list(user_id)]
