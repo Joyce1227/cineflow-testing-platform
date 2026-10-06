@@ -1,0 +1,34 @@
+cases:
+  - name: 电影列表分页
+    tags: [smoke, movie]
+    request:
+      method: GET
+      path: /api/movies
+      params: {pageNum: 1, pageSize: 5}
+    expect:
+      status: 200
+      code: 0
+      schema: movie-list.schema.json
+      checks:
+        - {path: $.data.pageNum, op: equals, value: 1}
+        - {path: $.data.pageSize, op: equals, value: 5}
+  - name: 非法页码
+    tags: [regression, movie]
+    request:
+      method: GET
+      path: /api/movies
+      params: {pageNum: 0}
+    expect:
+      status: 400
+      code: 400
+      schema: envelope.schema.json
+  - name: 不存在的电影
+    tags: [regression, movie]
+    request:
+      method: GET
+      path: /api/movies/999999999
+    expect:
+      status: 404
+      code: 404
+      schema: envelope.schema.json
+

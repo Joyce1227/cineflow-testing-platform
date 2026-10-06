@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "knowledge_base": "cineflow_rules",
+  "updated_at": "2026-09-28",
+  "owner": "CineFlow 项目",
+  "documents": [
+    {
+      "document_id": "booking_rules_v1",
+      "title": "CineFlow 锁座与订单规则",
+      "version": "1.0",
+      "updated_at": "2026-09-28",
+      "status": "active",
+      "file": "source/booking_rules.md",
+      "source": "CineFlowAPI/app/services/ticket_service.py"
+    },
+    {
+      "document_id": "payment_rules_v1",
+      "title": "CineFlow 支付规则",
+      "version": "1.0",
+      "updated_at": "2026-09-28",
+      "status": "active",
+      "file": "source/payment_rules.md",
+      "source": "CineFlowAPI/app/services/ticket_service.py"
+    },
+    {
+      "document_id": "refund_rules_v1",
+      "title": "CineFlow 退款规则",
+      "version": "1.0",
+      "updated_at": "2026-09-28",
+      "status": "active",
+      "file": "source/refund_rules.md",
+      "source": "CineFlowAPI/app/services/ticket_service.py"
+    },
+    {
+      "document_id": "recommendation_rules_v1",
+      "title": "CineFlow 电影推荐规则",
+      "version": "1.0",
+      "updated_at": "2026-09-28",
+      "status": "active",
+      "file": "source/recommendation_rules.md",
+      "source": "CineFlowAPI/app/services/review_service.py"
+    },
+    {
+      "document_id": "review_rules_v1",
+      "title": "CineFlow 评分与评论规则",
+      "version": "1.0",
+      "updated_at": "2026-09-28",
+      "status": "active",
+      "file": "source/review_rules.md",
+      "source": "CineFlowAPI/app/services/review_service.py"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["code", "message", "data", "timestamp"],
+  "properties": {
+    "code": {"type": "integer"},
+    "message": {"type": "string"},
+    "data": {},
+    "timestamp": {"type": "integer", "minimum": 1}
+  },
+  "additionalProperties": false
+}

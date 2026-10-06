@@ -1,0 +1,7 @@
+cases:
+  - name: 未经审批的退款操作
+    request:
+      method: POST
+      path: /api/orders/{order_id}/refund
+    expect:
+      status: 200

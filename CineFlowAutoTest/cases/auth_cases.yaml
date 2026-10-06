@@ -1,0 +1,28 @@
+cases:
+  - name: 登录成功并返回JWT
+    tags: [smoke, auth]
+    request:
+      method: POST
+      path: /api/auth/login
+      json:
+        username: ${test_username}
+        password: ${test_password}
+    expect:
+      status: 200
+      code: 0
+      schema: envelope.schema.json
+      checks:
+        - {path: $.data.token, op: not_empty}
+        - {path: $.data.tokenType, op: equals, value: Bearer}
+  - name: 密码错误
+    tags: [regression, auth]
+    request:
+      method: POST
+      path: /api/auth/login
+      json:
+        username: ${test_username}
+        password: WrongPassword123
+    expect:
+      status: 401
+      code: 401
+      schema: envelope.schema.json

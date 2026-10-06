@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["code", "message", "data", "timestamp"],
+  "properties": {
+    "code": {"const": 0},
+    "message": {"type": "string"},
+    "timestamp": {"type": "integer"},
+    "data": {
+      "type": "object",
+      "required": ["list", "pageNum", "pageSize", "total", "totalPages"],
+      "properties": {
+        "list": {"type": "array", "items": {"$ref": "#/$defs/movie"}},
+        "pageNum": {"type": "integer", "minimum": 1},
+        "pageSize": {"type": "integer", "minimum": 1},
+        "total": {"type": "integer", "minimum": 0},
+        "totalPages": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "movie": {
+      "type": "object",
+      "required": ["id", "name", "genres", "regions", "score", "status"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "name": {"type": "string", "minLength": 1},
+        "genres": {"type": ["string", "null"]},
+        "regions": {"type": ["string", "null"]},
+        "score": {"type": ["number", "null"]},
+        "status": {"enum": ["AVAILABLE", "OFF_SHELF"]}
+      }
+    }
+  }
+}
+

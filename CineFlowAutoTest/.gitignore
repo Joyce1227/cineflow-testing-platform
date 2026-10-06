@@ -1,0 +1,10 @@
+.venv/
+.idea/
+__pycache__/
+.pytest_cache/
+.pytest_tmp/
+reports/
+generated/
+.env
+*.pyc
+*.db

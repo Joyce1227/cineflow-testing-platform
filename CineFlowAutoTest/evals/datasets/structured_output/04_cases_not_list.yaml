@@ -1,0 +1,7 @@
+cases:
+  name: cases 不是列表
+  request:
+    method: GET
+    path: /api/movies
+  expect:
+    status: 200

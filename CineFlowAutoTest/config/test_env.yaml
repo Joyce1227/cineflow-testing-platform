@@ -1,0 +1,11 @@
+base_url: http://127.0.0.1:8000
+database_url: sqlite:///../CineFlowAPI/cineflow.db
+request_timeout: 10
+verify_ssl: false
+test_user:
+  username: test_user
+  password: Test1234
+admin_user:
+  username: admin
+  password: Admin123
+

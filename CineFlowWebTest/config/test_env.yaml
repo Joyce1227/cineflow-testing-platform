@@ -1,0 +1,15 @@
+base_url: http://127.0.0.1:5173
+api_url: http://127.0.0.1:8000/api
+browser: chrome
+headless: false
+timeout: 10
+window_size:
+  width: 1440
+  height: 1000
+test_user:
+  username: test_user
+  password: Test1234
+admin_user:
+  username: admin
+  password: Admin123
+

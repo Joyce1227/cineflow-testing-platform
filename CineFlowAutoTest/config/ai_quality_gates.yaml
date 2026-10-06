@@ -1,0 +1,9 @@
+# RAG 回归门禁。阈值低于离线基线，允许实现微调，但不允许关键安全能力退化。
+rag:
+  recall_at_1: 0.90
+  recall_at_3: 0.95
+  mrr: 0.90
+  answerable_accuracy: 0.90
+  no_answer_refusal_accuracy: 1.00
+  citation_legality_rate: 1.00
+  security_refusal_accuracy: 1.00

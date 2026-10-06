@@ -1,0 +1,12 @@
+cases:
+  - name: 电影列表正常查询
+    tags: [movie, smoke]
+    request:
+      method: GET
+      path: /api/movies
+      params:
+        pageNum: 1
+        pageSize: 5
+    expect:
+      status: 200
+      code: 0

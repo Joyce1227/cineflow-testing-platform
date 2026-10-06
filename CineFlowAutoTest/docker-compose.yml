@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: cineflow_test
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "3307:3306"
+
+  api:
+    build: ../CineFlowAPI
+    environment:
+      DATABASE_URL: mysql+pymysql://root:root@mysql:3306/cineflow_test?charset=utf8mb4
+      JWT_SECRET: cineflow-ci-only-secret
+      AUTO_CREATE_TABLES: "true"
+      SEED_DEMO_DATA: "true"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  tests:
+    build: .
+    environment:
+      BASE_URL: http://api:8000
+      DATABASE_URL: mysql+pymysql://root:root@mysql:3306/cineflow_test?charset=utf8mb4
+    depends_on:
+      - api
+    command: ["sh", "-c", "python scripts/wait_for_api.py && pytest --junitxml=reports/junit.xml"]
+    volumes:
+      - ./reports:/tests/reports
+

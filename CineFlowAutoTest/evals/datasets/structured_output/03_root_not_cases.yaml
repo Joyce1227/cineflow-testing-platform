@@ -1,0 +1,7 @@
+items:
+  - name: 根节点错误
+    request:
+      method: GET
+      path: /api/movies
+    expect:
+      status: 200

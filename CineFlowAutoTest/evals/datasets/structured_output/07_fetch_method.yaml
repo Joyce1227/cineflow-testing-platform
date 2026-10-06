@@ -1,0 +1,7 @@
+cases:
+  - name: 非法 HTTP 方法
+    request:
+      method: FETCH
+      path: /api/movies
+    expect:
+      status: 200

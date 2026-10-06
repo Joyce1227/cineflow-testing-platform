@@ -1,0 +1,26 @@
+# Python caches and test artifacts
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.pytest_tmp/
+**/.coverage
+**/coverage.xml
+**/htmlcov/
+**/reports/
+**/test.db
+
+# Frontend build and local caches
+**/dist/
+**/.npm-cache/
+
+# Local scratch files and logs
+tmp/
+outputs/
+*.log
+
+# Local environments and secrets
+**/.venv/
+**/.env
+
+
+/docs/interview/

@@ -1,0 +1,16 @@
+cases:
+  - name: 演员参演电影Top50
+    request: {method: GET, path: /api/stat/actor-top50}
+    expect: {status: 200, code: 0, schema: envelope.schema.json}
+  - name: 年份电影Top20
+    request:
+      method: GET
+      path: /api/stat/year-top20
+      params: {year: 2019}
+    expect: {status: 200, code: 0, schema: envelope.schema.json}
+  - name: 地区年份均分
+    request: {method: GET, path: /api/stat/region-year-average-score}
+    expect: {status: 200, code: 0, schema: envelope.schema.json}
+  - name: 年份地区数量
+    request: {method: GET, path: /api/stat/year-region-count}
+    expect: {status: 200, code: 0, schema: envelope.schema.json}

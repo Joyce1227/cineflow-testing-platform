@@ -1,0 +1,6 @@
+cases:
+  - name: 缺少请求路径
+    request:
+      method: GET
+    expect:
+      status: 200

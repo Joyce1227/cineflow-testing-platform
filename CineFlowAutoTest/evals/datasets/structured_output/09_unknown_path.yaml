@@ -1,0 +1,7 @@
+cases:
+  - name: OpenAPI 中不存在的路径
+    request:
+      method: GET
+      path: /api/not-exists
+    expect:
+      status: 404

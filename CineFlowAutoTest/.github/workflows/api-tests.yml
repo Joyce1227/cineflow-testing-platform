@@ -1,0 +1,54 @@
+name: CineFlow API Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ai-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: CineFlowAutoTest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: CineFlowAutoTest/requirements.txt
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+      # 该门禁完全离线，不访问真实模型或 CineFlow 服务。
+      - name: Run LLM, RAG and Agent quality gates
+        run: >-
+          python -m pytest
+          tests/test_llm_client.py
+          tests/test_llm_validation_pipeline.py
+          tests/test_rag_quality.py
+          tests/test_agent_quality.py
+          -q
+
+  api-test:
+    needs: ai-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: CineFlowAutoTest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run API tests
+        run: docker compose up --build --abort-on-container-exit --exit-code-from tests tests
+      - name: Upload Allure raw results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: CineFlowAutoTest/reports/allure-results
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
+

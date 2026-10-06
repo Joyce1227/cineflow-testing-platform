@@ -1,0 +1,9 @@
+cases:
+  - name: 不存在的查询参数
+    request:
+      method: GET
+      path: /api/movies
+      params:
+        pageNumber: 1
+    expect:
+      status: 200

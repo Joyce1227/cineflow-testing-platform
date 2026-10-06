@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["code", "message", "data", "timestamp"],
+  "properties": {
+    "code": {"const": 0},
+    "message": {"type": "string"},
+    "timestamp": {"type": "integer"},
+    "data": {
+      "type": "object",
+      "required": ["id", "orderNo", "userId", "scheduleId", "totalAmount", "status", "seats"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "orderNo": {"type": "string", "minLength": 1},
+        "userId": {"type": "integer", "minimum": 1},
+        "scheduleId": {"type": "integer", "minimum": 1},
+        "totalAmount": {"type": "number", "exclusiveMinimum": 0},
+        "status": {"enum": ["PENDING_PAYMENT", "PAID", "CANCELLED", "PAYMENT_FAILED", "EXPIRED", "REFUNDED"]},
+        "seats": {"type": "array", "minItems": 1}
+      }
+    }
+  }
+}
+

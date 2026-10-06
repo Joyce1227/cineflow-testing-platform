@@ -1,0 +1,7 @@
+cases:
+  - name: 正确路径使用错误方法
+    request:
+      method: POST
+      path: /api/movies
+    expect:
+      status: 405
