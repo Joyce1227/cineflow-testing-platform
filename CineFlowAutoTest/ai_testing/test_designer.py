@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from llm.client import complete
 from llm.models import GeneratedCases
-from llm.pipeline import ValidationPipeline, find_project_root
+from llm.pipeline import OPENAPI_RELATIVE_PATH, ValidationPipeline, find_project_root
 from llm.validators.structure import strip_markdown_fence
 
 
@@ -70,7 +70,7 @@ class TestDesignSourceReader:
         module_path = Path(__file__).resolve()
         project_root = find_project_root(module_path)
         autotest_root = module_path.parents[1]
-        self.openapi_path = openapi_path or project_root / "cineflow-openapi.json"
+        self.openapi_path = openapi_path or project_root / OPENAPI_RELATIVE_PATH
         self.rules_dir = rules_dir or autotest_root / "ai_knowledge" / "source"
 
     def read(self, paths: Sequence[str] | None = None) -> dict[str, Any]:

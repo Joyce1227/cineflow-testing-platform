@@ -16,7 +16,7 @@ services:
     build: ../CineFlowAPI
     environment:
       DATABASE_URL: mysql+pymysql://root:root@mysql:3306/cineflow_test?charset=utf8mb4
-      JWT_SECRET: cineflow-ci-only-secret
+      JWT_SECRET: cineflow-ci-only-secret-at-least-32-chars
       AUTO_CREATE_TABLES: "true"
       SEED_DEMO_DATA: "true"
     depends_on:
@@ -26,7 +26,9 @@ services:
       - "8000:8000"
 
   tests:
-    build: .
+    build:
+      context: ..
+      dockerfile: CineFlowAutoTest/Dockerfile
     environment:
       BASE_URL: http://api:8000
       DATABASE_URL: mysql+pymysql://root:root@mysql:3306/cineflow_test?charset=utf8mb4
@@ -34,5 +36,5 @@ services:
       - api
     command: ["sh", "-c", "python scripts/wait_for_api.py && pytest --junitxml=reports/junit.xml"]
     volumes:
-      - ./reports:/tests/reports
+      - ./reports:/workspace/CineFlowAutoTest/reports
 

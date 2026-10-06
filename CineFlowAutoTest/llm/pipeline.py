@@ -16,11 +16,14 @@ from llm.validators.openapi_contract import validate_case_against_openapi
 from llm.validators.structure import pydantic_issues, strip_markdown_fence
 
 
+OPENAPI_RELATIVE_PATH = Path("docs/api/cineflow-openapi.json")
+
+
 def find_project_root(start: Path) -> Path:
     for directory in (start, *start.parents):
-        if (directory / "cineflow-openapi.json").is_file():
+        if (directory / OPENAPI_RELATIVE_PATH).is_file():
             return directory
-    raise FileNotFoundError(f"从 {start} 向上没有找到 cineflow-openapi.json")
+    raise FileNotFoundError(f"从 {start} 向上没有找到 {OPENAPI_RELATIVE_PATH.as_posix()}")
 
 
 def _run_id() -> str:
@@ -39,7 +42,7 @@ class ValidationPipeline:
         module_path = Path(__file__).resolve()
         project_root = find_project_root(module_path)
         autotest_root = module_path.parents[1]
-        self.openapi_path = openapi_path or project_root / "cineflow-openapi.json"
+        self.openapi_path = openapi_path or project_root / OPENAPI_RELATIVE_PATH
         self.output_root = output_root or autotest_root / "generated"
         self.openapi = self._load_openapi()
 

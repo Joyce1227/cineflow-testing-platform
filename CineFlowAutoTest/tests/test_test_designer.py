@@ -72,7 +72,7 @@ candidate:
 
 def reader() -> _TestDesignSourceReader:
     return _TestDesignSourceReader(
-        openapi_path=PROJECT_ROOT / "cineflow-openapi.json",
+        openapi_path=PROJECT_ROOT / "docs" / "api" / "cineflow-openapi.json",
         rules_dir=AUTOTEST_ROOT / "ai_knowledge" / "source",
     )
 
