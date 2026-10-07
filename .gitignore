@@ -17,6 +17,7 @@
 tmp/
 outputs/
 *.log
+monitoring/data/
 
 # Local environments and secrets
 **/.venv/

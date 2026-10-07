@@ -6,8 +6,6 @@ services:
     environment:
       MYSQL_DATABASE: cineflow_db
       MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
     volumes:
       - movie_mysql_data:/var/lib/mysql
     healthcheck:
