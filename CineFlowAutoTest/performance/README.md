@@ -1,145 +1,129 @@
-# CineFlow JMeter 性能测试说明
+# CineFlow 性能测试工程
 
+本目录提供可重复执行的 JMeter 性能测试，而不是只用于演示的单接口脚本。正式测试前必须启动 CineFlow API 和 MySQL，并且只能对已授权的测试环境执行。
 
-## 1. 当前压测场景
+## 场景
 
-每个虚拟用户执行以下流程：
+| 场景 | JMX | 验证目标 |
+|---|---|---|
+| `readonly` | `cineflow-api-performance.jmx` | 登录一次后循环执行电影列表、热门电影、演员统计和个人推荐 |
+| `booking` | `cineflow-booking-performance.jmx` | 每用户独立座位，循环执行查询、下单幂等、支付回调幂等和退款 |
+| `contention` | `cineflow-seat-contention.jmx` | 所有用户同时购买同一座位，必须恰好一个 `201`，其余均为 `409` |
 
-1. 仅登录一次：`POST /api/auth/login`。
-2. 从 `$.data.token` 提取 JWT。
-3. 循环请求电影列表、热门电影、演员 Top50 和个人推荐。
-4. 每个请求断言 HTTP 200，并以默认 2000ms 作为单请求最大响应时间。
+`booking` 和 `contention` 会自动创建隔离的电影、影院、场次、座位和用户，不使用日常测试数据。JMeter CSV 中每个线程有独立账号；购票场景使用不同座位，争抢场景使用同一个座位。
 
-四个业务接口在每次循环中各执行一次。场景只读，不创建订单、不锁座，也不修改电影数据，适合反复压测开发或专用测试环境。
+## 文件说明
 
-## 2. 安装与检查
+```text
+performance/
+├─ cineflow-api-performance.jmx
+├─ cineflow-booking-performance.jmx
+├─ cineflow-seat-contention.jmx
+├─ prepare_performance_data.py
+├─ cleanup_performance_data.py
+├─ summarize_jtl.py
+├─ run-performance.ps1
+├─ run-performance-suite.ps1
+├─ cleanup-performance-data.ps1
+└─ PERFORMANCE_REPORT_TEMPLATE.md
+```
 
-1. 安装 Java 8 或更高版本。
-2. 下载并解压 Apache JMeter 5.6.3，例如到 `D:\tools\apache-jmeter-5.6.3`。
-3. 新建系统环境变量 `JMETER_HOME`，值为 JMeter 解压目录。
-4. 将 `%JMETER_HOME%\bin` 加入 `Path`。
-5. 重新打开 PowerShell，执行：
+## 环境检查
 
 ```powershell
 java -version
-jmeter -v
+& "D:\apache-jmeter-5.6.3\apache-jmeter-5.6.3\bin\jmeter.bat" -v
+python -m pip install -r CineFlowAutoTest\requirements.txt
 ```
 
-如果不想修改 `Path`，运行脚本时传入 `-JMeterHome` 即可。
+不要使用 JMeter GUI 正式压测。GUI 只用于脚本调试，正式测试必须使用非 GUI 命令。
 
-## 3. 先用 GUI 检查
+## 一键冒烟
 
-启动 CineFlowAPI 后，在 PowerShell 中执行：
-
-```powershell
-cd D:\MovieTicketingAndRecommendationSystem\CineFlowAutoTest
-jmeter -t performance\cineflow-api-performance.jmx
-```
-
-在 JMeter 左侧依次查看：
-
-- `HTTP Request Defaults`：协议、主机和端口。
-- `Login Once Per Virtual User`：登录、HTTP 断言、JWT 提取。
-- 四个 GET 请求：实际业务压测接口。
-- `JWT Authorization Header`：个人推荐接口的 Bearer Token。
-
-GUI 只用于编辑、调试和 1 个用户的小规模验证，不用于正式压测。调试时可临时添加 `View Results Tree`，确认请求后应删除或禁用它，避免监听器占用大量内存。
-
-## 4. 命令行执行并生成报告
-
-推荐直接运行封装脚本：
+从仓库根目录执行：
 
 ```powershell
-cd D:\MovieTicketingAndRecommendationSystem\CineFlowAutoTest
 Set-ExecutionPolicy -Scope Process Bypass
-.\performance\run-jmeter.ps1 -Users 10 -RampUp 10 -Duration 60
+.\CineFlowAutoTest\performance\run-performance-suite.ps1 -Profile smoke
 ```
 
-未设置 `JMETER_HOME` 时：
+冒烟套件依次运行：
+
+- 1 用户只读场景，15 秒。
+- 2 用户混合购票场景，15 秒。
+- 5 用户同座位争抢，单轮。
+
+## 标准与稳定性套件
 
 ```powershell
-.\performance\run-jmeter.ps1 `
-  -JMeterHome "D:\tools\apache-jmeter-5.6.3" `
-  -Users 10 `
-  -RampUp 10 `
-  -Duration 60
+# 标准测试，约 5 分钟
+.\CineFlowAutoTest\performance\run-performance-suite.ps1 -Profile standard
+
+# 30 分钟稳定性测试，运行前确保电脑空闲
+.\CineFlowAutoTest\performance\run-performance-suite.ps1 -Profile stability
 ```
 
-每次运行会新建独立目录：
+## 单独运行场景
+
+```powershell
+# 只读查询基线
+.\CineFlowAutoTest\performance\run-performance.ps1 `
+  -Scenario readonly -Users 10 -RampUp 10 -Duration 120
+
+# 混合购票链路；自动准备 20 个用户和独立座位
+.\CineFlowAutoTest\performance\run-performance.ps1 `
+  -Scenario booking -Users 20 -RampUp 20 -Duration 120
+
+# 50 个用户同时抢同一座位
+.\CineFlowAutoTest\performance\run-performance.ps1 `
+  -Scenario contention -Users 50 -RampUp 0 -Duration 1
+```
+
+如果 JMeter 不在默认目录，也没有设置 `JMETER_HOME`：
+
+```powershell
+.\CineFlowAutoTest\performance\run-performance.ps1 `
+  -JMeterHome "D:\tools\apache-jmeter-5.6.3" `
+  -Scenario readonly -Users 10 -Duration 60
+```
+
+## 测试报告
+
+每次运行生成独立目录：
 
 ```text
-reports/jmeter/日期时间/
+CineFlowAutoTest/reports/jmeter/场景-时间戳/
 ├─ results.jtl
+├─ jmeter.log
+├─ summary.json
+├─ summary.md
 └─ html/index.html
 ```
 
-压测完成后用浏览器打开 `html/index.html`。时间戳目录避免 JMeter 因 HTML 输出目录非空而拒绝生成报告。
+`summarize_jtl.py` 会计算样本数、错误率、吞吐量、Average、P90、P95、P99 和 Max。默认错误率门禁为 0%；可以使用 `-MaxErrorRate` 明确调整，但不能为了让报告变绿而掩盖未知错误。
 
-也可以直接使用原生命令：
+同座位竞争中的 `409` 是预期业务结果，JMX 会将它标记为成功；任何 `500`、超时或“成功买到座位的人数不等于 1”都会使质量门禁失败。
 
-```powershell
-jmeter -n `
-  -t performance\cineflow-api-performance.jmx `
-  -l reports\jmeter\results.jtl `
-  -e `
-  -o reports\jmeter\html `
-  -Jhost=127.0.0.1 `
-  -Jport=8000 `
-  -Jusers=10 `
-  -Jramp_up=10 `
-  -Jduration=60
-```
+## 清理测试数据
 
-使用原生命令前，`reports\jmeter\html` 必须不存在或为空。
-
-## 5. 可调整参数
-
-| 脚本参数 | JMeter 属性 | 默认值 | 含义 |
-|---|---|---:|---|
-| `-Protocol` | `protocol` | `http` | HTTP 协议 |
-| `-HostName` | `host` | `127.0.0.1` | 后端地址，不包含协议 |
-| `-Port` | `port` | `8000` | 后端端口 |
-| `-Username` | `username` | `test_user` | 登录用户名 |
-| `-Password` | `password` | `Test1234` | 登录密码 |
-| `-Users` | `users` | `10` | 并发虚拟用户数 |
-| `-RampUp` | `ramp_up` | `10` | 所有用户启动完成所需秒数 |
-| `-Duration` | `duration` | `60` | 持续压测秒数 |
-| `-ThinkTime` | `think_time` | `500` | 两次请求间隔毫秒数 |
-| `-MaxResponseMs` | `max_response_ms` | `2000` | 单请求超时断言阈值毫秒数 |
-
-例如后端使用 `http://192.168.94.130:8000`：
+每次写场景都会生成 `data/metadata.json`。清理脚本只删除该文件记录的用户、场次和订单，并默认拒绝远程数据库：
 
 ```powershell
-.\performance\run-jmeter.ps1 -HostName 192.168.94.130 -Port 8000 -Users 10 -Duration 60
+.\CineFlowAutoTest\performance\cleanup-performance-data.ps1 `
+  -Metadata ".\CineFlowAutoTest\reports\jmeter\suite-smoke-时间戳\data\metadata.json" `
+  -DatabaseUrl "mysql+pymysql://root:root@127.0.0.1:3307/cineflow_test?charset=utf8mb4"
 ```
 
-## 6. 建议的阶梯压测
+远程测试库必须确认已授权后显式传入 `-AllowRemote`。禁止对生产数据库运行清理脚本。
 
-不要一开始就使用 100 用户。每档压测前让服务和数据库恢复 1～2 分钟，并保存报告。
+## 建议执行顺序
 
-```powershell
-# 冒烟：确认脚本、账号、断言都正常
-.\performance\run-jmeter.ps1 -Users 1 -RampUp 1 -Duration 30
+1. 运行 `smoke`，确认脚本、账号、断言和数据清理正常。
+2. 运行 `standard`，获取只读、购票和竞争场景基线。
+3. 分别执行 10、30、50、100 用户阶梯压测，关键档位重复三次。
+4. 找到 P95 或错误率明显恶化的性能拐点。
+5. 在电脑空闲时执行 `stability`。
+6. 结合服务端 CPU、内存、数据库连接数和慢 SQL 定位瓶颈。
+7. 优化后用完全相同参数复测，并填写 `PERFORMANCE_REPORT_TEMPLATE.md`。
 
-# 基线
-.\performance\run-jmeter.ps1 -Users 10 -RampUp 10 -Duration 120
-
-# 中等负载
-.\performance\run-jmeter.ps1 -Users 50 -RampUp 30 -Duration 300
-
-# 压力档
-.\performance\run-jmeter.ps1 -Users 100 -RampUp 60 -Duration 300
-```
-
-至少记录每档的 Throughput、Error %、Average、90th/95th/99th percentile 和服务端 CPU、内存、MySQL 连接数。性能是否合格应以项目需求为准；当前 2000ms 只是脚本默认断言，不等同于最终 SLA。
-
-## 7. 常见失败定位
-
-- 登录为 401：检查 `test_user / Test1234` 是否存在，或传入正确账号。
-- 推荐接口为 401：先看 `POST Login` 是否成功，以及 `Extract JWT` 是否得到 `data.token`。
-- 大量 2 秒断言失败：先提高 `-MaxResponseMs` 区分“接口失败”和“暂未达到性能目标”，再分析数据库慢查询、连接池和服务资源。
-- `Connection refused`：FastAPI 未启动，或主机/端口传错。
-- HTML 报告无法生成：输出目录已存在且非空；使用本项目脚本会自动采用新的时间戳目录。
-- 本机同时运行 FastAPI、MySQL 和 JMeter 会互相争用资源；正式结论应由独立压测机请求专用测试环境。
-
-严禁直接对生产环境执行压力测试。
+本机同时运行 JMeter、API 和 MySQL 时会争抢资源，得到的数据只能代表当前本机环境，不能直接等同于生产容量。

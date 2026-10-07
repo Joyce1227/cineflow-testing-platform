@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="CineFlow Same Seat Contention Test">
+      <stringProp name="TestPlan.comments">All authenticated users submit one order for the same seat at the same time. Exactly one must return 201; all others must return 409.</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp><boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp><boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="protocol" elementType="Argument"><stringProp name="Argument.name">protocol</stringProp><stringProp name="Argument.value">${__P(protocol,http)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+          <elementProp name="host" elementType="Argument"><stringProp name="Argument.name">host</stringProp><stringProp name="Argument.value">${__P(host,127.0.0.1)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+          <elementProp name="port" elementType="Argument"><stringProp name="Argument.name">port</stringProp><stringProp name="Argument.value">${__P(port,8000)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+          <elementProp name="users" elementType="Argument"><stringProp name="Argument.name">users</stringProp><stringProp name="Argument.value">${__P(users,10)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+          <elementProp name="data_file" elementType="Argument"><stringProp name="Argument.name">data_file</stringProp><stringProp name="Argument.value">${__P(data_file,contention-users.csv)}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp>
+        </collectionProp>
+      </elementProp><stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"/></elementProp><stringProp name="HTTPSampler.domain">${host}</stringProp><stringProp name="HTTPSampler.port">${port}</stringProp><stringProp name="HTTPSampler.protocol">${protocol}</stringProp><stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp><stringProp name="HTTPSampler.connect_timeout">5000</stringProp><stringProp name="HTTPSampler.response_timeout">15000</stringProp><stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+      </ConfigTestElement><hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Common Headers"><collectionProp name="HeaderManager.headers">
+        <elementProp name="accept" elementType="Header"><stringProp name="Header.name">Accept</stringProp><stringProp name="Header.value">application/json</stringProp></elementProp>
+        <elementProp name="content" elementType="Header"><stringProp name="Header.name">Content-Type</stringProp><stringProp name="Header.value">application/json</stringProp></elementProp>
+        <elementProp name="auth" elementType="Header"><stringProp name="Header.name">Authorization</stringProp><stringProp name="Header.value">Bearer ${auth_token}</stringProp></elementProp>
+      </collectionProp></HeaderManager><hashTree/>
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="Initialize Winner Counter">
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp>
+      </SetupThreadGroup>
+      <hashTree><JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Reset Winner Counter"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">props.put('cineflow_contention_winners', new java.util.concurrent.atomic.AtomicInteger(0))
+props.put('cineflow_winner_order_id', '')
+props.put('cineflow_winner_token', '')
+SampleResult.setResponseCode('200')
+SampleResult.setResponseMessage('Winner counter initialized')
+SampleResult.setIgnore()</stringProp></JSR223Sampler><hashTree/></hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Concurrent Same Seat Buyers">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">${users}</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp><boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Users Sharing One Seat"><stringProp name="filename">${data_file}</stringProp><stringProp name="fileEncoding">UTF-8</stringProp><stringProp name="variableNames"></stringProp><boolProp name="ignoreFirstLine">false</boolProp><stringProp name="delimiter">,</stringProp><boolProp name="quotedData">false</boolProp><boolProp name="recycle">false</boolProp><boolProp name="stopThread">true</boolProp><stringProp name="shareMode">shareMode.all</stringProp></CSVDataSet><hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Login">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="body" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;username&quot;:&quot;${username}&quot;,&quot;password&quot;:&quot;${password}&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/auth/login</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Login 200"><collectionProp name="Asserion.test_strings"><stringProp name="code">200</stringProp></collectionProp><stringProp name="Assertion.test_field">Assertion.response_code</stringProp><boolProp name="Assertion.assume_success">false</boolProp><intProp name="Assertion.test_type">8</intProp></ResponseAssertion><hashTree/>
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract JWT"><stringProp name="JSONPostProcessor.referenceNames">auth_token</stringProp><stringProp name="JSONPostProcessor.jsonPathExprs">$.data.token</stringProp><stringProp name="JSONPostProcessor.match_numbers">1</stringProp><stringProp name="JSONPostProcessor.defaultValues">TOKEN_NOT_FOUND</stringProp></JSONPostProcessor><hashTree/>
+        </hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Competing Order">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"><collectionProp name="Arguments.arguments"><elementProp name="body" elementType="HTTPArgument"><boolProp name="HTTPArgument.always_encode">false</boolProp><stringProp name="Argument.value">{&quot;scheduleId&quot;:${schedule_id},&quot;seatIds&quot;:[${seat_id}],&quot;idempotencyKey&quot;:&quot;${idempotency_key}&quot;}</stringProp><stringProp name="Argument.metadata">=</stringProp></elementProp></collectionProp></elementProp><stringProp name="HTTPSampler.path">/api/orders</stringProp><stringProp name="HTTPSampler.method">POST</stringProp><boolProp name="HTTPSampler.postBodyRaw">true</boolProp><boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Barrier Before Purchase"><intProp name="groupSize">0</intProp><longProp name="timeoutInMs">60000</longProp></SyncTimer><hashTree/>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate Idempotency Key"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">vars.put('idempotency_key', 'race-' + java.util.UUID.randomUUID().toString())</stringProp></JSR223PreProcessor><hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Validate Competition Result"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">def code = prev.getResponseCode()
+vars.put('is_winner', code == '201' ? 'true' : 'false')
+if (code == '201') {
+    def payload = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+    vars.put('order_id', payload.data.id.toString())
+    props.put('cineflow_winner_order_id', payload.data.id.toString())
+    props.put('cineflow_winner_token', vars.get('auth_token'))
+    props.get('cineflow_contention_winners').incrementAndGet()
+    prev.setSuccessful(true)
+} else if (code == '409') {
+    prev.setSuccessful(true)
+} else {
+    prev.setSuccessful(false)
+    prev.setResponseMessage('Expected 201 or 409, received ' + code)
+}</stringProp></JSR223PostProcessor><hashTree/>
+        </hashTree>
+      </hashTree>
+      <PostThreadGroup guiclass="PostThreadGroupGui" testclass="PostThreadGroup" testname="Verify Exactly One Winner">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp><elementProp name="ThreadGroup.main_controller" elementType="LoopController"><boolProp name="LoopController.continue_forever">false</boolProp><stringProp name="LoopController.loops">1</stringProp></elementProp><stringProp name="ThreadGroup.num_threads">1</stringProp><stringProp name="ThreadGroup.ramp_time">0</stringProp><boolProp name="ThreadGroup.scheduler">false</boolProp>
+      </PostThreadGroup>
+      <hashTree><JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="ASSERT Exactly One Successful Buyer"><stringProp name="scriptLanguage">groovy</stringProp><stringProp name="parameters"></stringProp><stringProp name="filename"></stringProp><stringProp name="cacheKey">true</stringProp><stringProp name="script">def winners = props.get('cineflow_contention_winners').get()
+SampleResult.setResponseData(('winners=' + winners).getBytes('UTF-8'))
+SampleResult.setDataType(org.apache.jmeter.samplers.SampleResult.TEXT)
+if (winners == 1) {
+    def orderId = props.get('cineflow_winner_order_id')
+    def endpoint = new URL(props.get('protocol') + '://' + props.get('host') + ':' + props.get('port') + '/api/orders/' + orderId + '/cancel')
+    def connection = endpoint.openConnection()
+    connection.setRequestMethod('POST')
+    connection.setRequestProperty('Authorization', 'Bearer ' + props.get('cineflow_winner_token'))
+    connection.setRequestProperty('Content-Type', 'application/json')
+    connection.setDoOutput(true)
+    connection.outputStream.withCloseable { it.write(new byte[0]) }
+    def cleanupCode = connection.responseCode
+    connection.disconnect()
+    SampleResult.setSuccessful(cleanupCode == 200)
+    SampleResult.setResponseCode(cleanupCode == 200 ? '200' : '500')
+    SampleResult.setResponseMessage(cleanupCode == 200 ? 'Exactly one buyer succeeded; winner order cancelled' : 'Winner cleanup returned ' + cleanupCode)
+} else {
+    SampleResult.setSuccessful(false)
+    SampleResult.setResponseCode('500')
+    SampleResult.setResponseMessage('Expected exactly one successful buyer, got ' + winners)
+}</stringProp></JSR223Sampler><hashTree/></hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
